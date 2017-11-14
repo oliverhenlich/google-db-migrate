@@ -5,63 +5,127 @@
 --
 
 -- Total time taken by category
-select  schema_name, category, count(*) as table_count, sum(seconds_taken) as total_seconds, sec_to_time(sum(seconds_taken)) as total_time from log_table_category_summary group by schema_name, category;
+SELECT
+  schema_name,
+  category,
+  count(*)                        AS table_count,
+  sum(seconds_taken)              AS total_seconds,
+  sec_to_time(sum(seconds_taken)) AS total_time
+FROM LOG_TABLE_CATEGORY_SUMMARY
+GROUP BY schema_name, category;
 
 -- Total rows to import
-select schema_name, sum(rows) from MIGRATION_STATUS group by schema_name;
+SELECT
+  schema_name,
+  sum(rows)
+FROM MIGRATION_STATUS
+GROUP BY schema_name;
 
 -- Total rows imported
-select v.schema_name, sum(s.rows) from log_table_category_summary v inner join migration_status s on s.schema_name=v.schema_name and s.table_name=v.table_name where v.category='IMPORT_DATA' group by v.schema_name
+SELECT
+  v.schema_name,
+  sum(s.rows)
+FROM LOG_TABLE_CATEGORY_SUMMARY v
+  INNER JOIN MIGRATION_STATUS s
+    ON s.schema_name = v.schema_name AND s.table_name = v.table_name
+WHERE v.category = 'IMPORT_DATA'
+GROUP BY v.schema_name;
 
--- % imported
-select s1.schema_name,
-        sum(s1.rows) as rows,
-        (select sum(s.rows) from log_table_category_summary v inner join migration_status s on s.schema_name=v.schema_name and s.table_name=v.table_name where v.category='IMPORT' and v.schema_name=s1.schema_name group by v.schema_name) as rows_imported,
-        ((sum(s1.rows)-(select sum(s.rows) from log_table_category_summary v inner join migration_status s on s.schema_name=v.schema_name and s.table_name=v.table_name where v.category='IMPORT' and v.schema_name=s1.schema_name group by v.schema_name))/sum(s1.rows)*100) as rows_imported_percent
-from MIGRATION_STATUS s1
-group by s1.schema_name;
+-- Time taken for importing so far
+SELECT
+  ss.schema_name,
+  ss.table_name,
+  ss.seconds_taken,
+  s.rows,
+  (ss.seconds_taken / s.rows)
+FROM LOG_TABLE_CATEGORY_SUMMARY ss
+  INNER JOIN MIGRATION_STATUS s
+    ON s.schema_name = ss.schema_name AND s.table_name = ss.table_name
+WHERE ss.category = 'IMPORT_DATA'
+ORDER BY s.rows;
 
+-- Records remaining to be imported and an estimate of how long it will take
+SELECT
+  status.schema_name,
+  sum(status.rows)                                                              AS remaining_rows,
+  imported_summary.imported_rows                                                AS imported_rows,
+  sec_to_time(imported_summary.imported_seconds)                                AS imported_time,
+  imported_avg_seconds                                                          AS imported_avg_seconds_per_table,
+  imported_avg_rows_per_second                                                  AS imported_avg_rows_per_second,
+  (sum(status.rows) / imported_summary.imported_avg_rows_per_second)            AS seconds_remaining,
+  sec_to_time(sum(status.rows) / imported_summary.imported_avg_rows_per_second) AS time_remaining
+FROM (
+       SELECT
+         ss.schema_name                      AS imported_schema,
+         sum(s.rows)                         AS imported_rows,
+         sum(ss.seconds_taken)               AS imported_seconds,
+         sec_to_time(sum(seconds_taken))     AS imported_time,
+         avg(ss.seconds_taken)               AS imported_avg_seconds,
+         sum(s.rows) / sum(ss.seconds_taken) AS imported_avg_rows_per_second
+       FROM LOG_TABLE_CATEGORY_SUMMARY ss
+         INNER JOIN MIGRATION_STATUS s
+           ON s.schema_name = ss.schema_name AND s.table_name = ss.table_name
+       GROUP BY ss.schema_name, ss.CATEGORY
+       HAVING ss.category = 'IMPORT_DATA'
+     ) AS imported_summary
+  INNER JOIN MIGRATION_STATUS status ON imported_summary.imported_schema = status.schema_name
+WHERE status.imported = 'N'
+GROUP BY status.schema_name;
+
+-- Total records already imported
+SELECT
+  ss.schema_name,
+  sum(s.rows)                         AS rows_imported,
+  sum(ss.seconds_taken)               AS imported_seconds,
+  sec_to_time(sum(seconds_taken))     AS imported_time,
+  avg(ss.seconds_taken)               AS imported_avg_seconds,
+  sum(s.rows) / sum(ss.seconds_taken) AS imported_avg_rows_per_second
+FROM LOG_TABLE_CATEGORY_SUMMARY ss
+  INNER JOIN MIGRATION_STATUS s
+    ON s.schema_name = ss.schema_name AND s.table_name = ss.table_name
+GROUP BY ss.schema_name, ss.category
+HAVING ss.category = 'IMPORT_DATA';
 
 -- Group by start/end pairs (only those with table names)
-CREATE or replace VIEW log_table_category_summary as
-SELECT
-    start_log.schema_name,
-    start_log.TABLE_NAME,
-    start_log.CATEGORY,
-    start_log.CREATED AS start_time,
-    end_log.CREATED AS end_time,
-    TIMESTAMPDIFF(SECOND, start_log.CREATED,  end_log.CREATED) as seconds_taken,
-    TIMEDIFF(end_log.CREATED, start_log.CREATED) as time_taken
-FROM
-    MIGRATION_LOG AS start_log
-INNER JOIN MIGRATION_LOG AS end_log ON (
-            start_log.SCHEMA_NAME = end_log.SCHEMA_NAME
-            and start_log.TABLE_NAME = end_log.TABLE_NAME
-            and start_log.CATEGORY = end_log.CATEGORY
-            AND end_log.CREATED >= start_log.CREATED)
-WHERE start_log.ACTION = 'START' AND end_log.ACTION = 'END'
-AND trim(start_log.TABLE_NAME) != "" AND trim(end_log.TABLE_NAME)  != ""
-GROUP BY start_log.schema_name, start_log.TABLE_NAME, start_log.CATEGORY
-order by start_log.CREATED;
-
--- Group by start/end pairs (all pairs)
-CREATE or replace VIEW log_notable_category_summary as
+CREATE OR REPLACE VIEW LOG_TABLE_CATEGORY_SUMMARY AS
   SELECT
     start_log.schema_name,
     start_log.TABLE_NAME,
     start_log.CATEGORY,
-    start_log.CREATED AS start_time,
-    end_log.CREATED AS end_time,
-    TIMESTAMPDIFF(SECOND, start_log.CREATED,  end_log.CREATED) as seconds_taken,
-    TIMEDIFF(end_log.CREATED, start_log.CREATED) as time_taken
+    start_log.CREATED                                         AS start_time,
+    end_log.CREATED                                           AS end_time,
+    TIMESTAMPDIFF(SECOND, start_log.CREATED, end_log.CREATED) AS seconds_taken,
+    TIMEDIFF(end_log.CREATED, start_log.CREATED)              AS time_taken
   FROM
     MIGRATION_LOG AS start_log
     INNER JOIN MIGRATION_LOG AS end_log ON (
     start_log.SCHEMA_NAME = end_log.SCHEMA_NAME
-    and start_log.TABLE_NAME = end_log.TABLE_NAME
-    and start_log.CATEGORY = end_log.CATEGORY
+    AND start_log.TABLE_NAME = end_log.TABLE_NAME
+    AND start_log.CATEGORY = end_log.CATEGORY
+    AND end_log.CREATED >= start_log.CREATED)
+  WHERE start_log.ACTION = 'START' AND end_log.ACTION = 'END'
+        AND trim(start_log.TABLE_NAME) != "" AND trim(end_log.TABLE_NAME) != ""
+  GROUP BY start_log.schema_name, start_log.TABLE_NAME, start_log.CATEGORY
+  ORDER BY start_log.CREATED;
+
+-- Group by start/end pairs (all pairs)
+CREATE OR REPLACE VIEW LOG_NOTABLE_CATEGORY_SUMMARY AS
+  SELECT
+    start_log.schema_name,
+    start_log.TABLE_NAME,
+    start_log.CATEGORY,
+    start_log.CREATED                                         AS start_time,
+    end_log.CREATED                                           AS end_time,
+    TIMESTAMPDIFF(SECOND, start_log.CREATED, end_log.CREATED) AS seconds_taken,
+    TIMEDIFF(end_log.CREATED, start_log.CREATED)              AS time_taken
+  FROM
+    MIGRATION_LOG AS start_log
+    INNER JOIN MIGRATION_LOG AS end_log ON (
+    start_log.SCHEMA_NAME = end_log.SCHEMA_NAME
+    AND start_log.TABLE_NAME = end_log.TABLE_NAME
+    AND start_log.CATEGORY = end_log.CATEGORY
     AND end_log.CREATED >= start_log.CREATED)
   WHERE start_log.ACTION = 'START' AND end_log.ACTION = 'END'
         AND trim(start_log.TABLE_NAME) = "" AND trim(end_log.TABLE_NAME) = ""
   GROUP BY start_log.schema_name, start_log.TABLE_NAME, start_log.CATEGORY
-  order by start_log.CREATED;
+  ORDER BY start_log.CREATED;

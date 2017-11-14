@@ -40,5 +40,14 @@ Which gives an output like:
 +-------------+-------------+-------------+---------------+------------+
 ```
 
+Another example is to determine how far through the import we are and an estimate of how much longer it will take gives an output like:
+```
++-------------+----------------+---------------+---------------------+---------------+--------------------------------+------------------------------+-------------------+----------------+
+| schema_name | remaining_rows | imported_rows | imported_percentage | imported_time | imported_avg_seconds_per_table | imported_avg_rows_per_second | seconds_remaining | time_remaining |
++-------------+----------------+---------------+---------------------+---------------+--------------------------------+------------------------------+-------------------+----------------+
+| next        |        1491244 |      11764525 |            788.9068 | 03:09:32      |                        29.4611 |                    1034.5168 |         1441.4884 | 00:24:01.4884  |
++-------------+----------------+---------------+---------------------+---------------+--------------------------------+------------------------------+-------------------+----------------+
+```
+
 ## Other Notes
 * GSQL does not allow concurrent imports. Ideally we would have been able to kick off as many as we liked.
