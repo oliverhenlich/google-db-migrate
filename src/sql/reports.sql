@@ -37,7 +37,7 @@ SELECT
   ss.table_name,
   ss.seconds_taken,
   s.rows,
-  (ss.seconds_taken / s.rows)
+  (s.rows / ss.seconds_taken) as rows_per_second
 FROM LOG_TABLE_CATEGORY_SUMMARY ss
   INNER JOIN MIGRATION_STATUS s
     ON s.schema_name = ss.schema_name AND s.table_name = ss.table_name
