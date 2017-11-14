@@ -103,6 +103,7 @@ GROUP BY schema_name, category;
 ```
 
 * Relationship between rows and time taken for import.
+
 Interestingly, there does not seem to be a strict correlation between the time the import operation took and the number of rows.
 
 Some tables with few rows (e.g. `address_validator`) took over a minute. Perhaps there are just some intermittent latency issues
