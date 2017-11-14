@@ -7,7 +7,7 @@ This tools processes tables of a database individually.
 The goal was to be able to begin uploading a complete table dump as soon as it is ready
 and then to subsequently also being importing it into GSQL.
 
-This tool creates a database called 'google_migration' which is used for:
+This tool creates a database called `google_migration` which is used for:
 * Tracking the status of each table (`migration_status`).
 * Logging each operation (`migration_log`).
 
