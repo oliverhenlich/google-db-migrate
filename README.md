@@ -24,9 +24,14 @@ Use the SQL statements in `src/sql/reports.sql`.
 
 For example, to see a summary of all operations:
 ```
-select schema_name, category, count(*) as table_count, sum(seconds_taken) as total_seconds, sec_to_time(sum(seconds_taken)) as total_time
-from log_table_category_summary
-group by schema_name, category;
+SELECT
+  schema_name,
+  category,
+  count(*)                        AS table_count,
+  sum(seconds_taken)              AS total_seconds,
+  sec_to_time(sum(seconds_taken)) AS total_time
+FROM LOG_TABLE_CATEGORY_SUMMARY
+GROUP BY schema_name, category;
 ```
 
 Which gives an output like:
