@@ -47,13 +47,17 @@ ORDER BY s.rows;
 -- Records remaining to be imported and an estimate of how long it will take
 SELECT
   status.schema_name,
-  format(imported_summary.imported_rows, 0)                                     AS imported_rows,
+  count(*)                                                                      AS remaining_tables,
   format(sum(status.rows), 0)                                                   AS remaining_rows,
-  format((sum(status.rows) / imported_summary.imported_avg_rows_per_second), 0) AS seconds_remaining,
-  sec_to_time(sum(status.rows) / imported_summary.imported_avg_rows_per_second) AS time_remaining,
+  format(imported_summary.imported_rows, 0)                                     AS imported_rows,
+--   format((sum(status.rows) / imported_summary.imported_avg_rows_per_second), 0) AS seconds_remaining,
+--   sec_to_time(sum(status.rows) / imported_summary.imported_avg_rows_per_second) AS time_remaining,
+  format((count(*) * imported_avg_seconds), 0)                                   AS seconds_remaining,
+       sec_to_time((count(*) * imported_avg_seconds))                        AS time_remaining,
   sec_to_time(imported_summary.imported_seconds)                                AS imported_time,
   format(imported_avg_seconds, 2)                                               AS imported_avg_seconds_per_table,
-  format(imported_avg_rows_per_second, 2)                                       AS imported_avg_rows_per_second
+  format(imported_avg_rows_per_second, 2)                                       AS imported_avg_rows_per_second,
+  (select s2.TABLE_NAME from MIGRATION_STATUS s2 where s2.schema_name = status.schema_name and s2.IMPORTING = 'Y' order by id limit 1) as currently_importing
 FROM (
        SELECT
          ss.schema_name                      AS imported_schema,
