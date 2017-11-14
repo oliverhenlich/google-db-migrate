@@ -102,3 +102,46 @@ GROUP BY schema_name, category;
 +-------------+------------------+----------------+---------------+-------------------+----------------+---------------+--------------------------------+------------------------------+---------------------+
 ```
 
+* Relationship between rows and time taken for import.
+Interestingly, there does not seem to be a strict correlation between the time the import operation took and the number of rows.
+
+Some tables with few rows (e.g. `address_validator`) took over a minute. Perhaps there are just some intermittent latency issues
+when using the gcloud command to trigger trigger the import.
+
+Will have to test again with some of our larger tables.
+
+Results by seconds taken:
+```
++-------------+--------------------------------+---------------+---------+-----------------------------+
+| schema_name | table_name                     | seconds_taken | rows    | (ss.seconds_taken / s.rows) |
++-------------+--------------------------------+---------------+---------+-----------------------------+
+| next        | activity_site_user             |            93 |   19253 |                      0.0048 |
+| next        | account_code_pick_list_option  |            92 | 1727494 |                      0.0001 |
+| next        | activity                       |            89 |   18508 |                      0.0048 |
+| next        | address_validator              |            70 |       2 |                     35.0000 |
+| next        | requisition_item_tax_details   |            68 |   67973 |                      0.0010 |
+| next        | requisition_response_processor |            67 |       1 |                     67.0000 |
+| next        | site_user_organisation_unit    |            67 |   44683 |                      0.0015 |
+| next        | account_code                   |            67 |   26429 |                      0.0025 |
+| next        | validate_master_record         |            67 |   12313 |                      0.0054 |
+| next        | workflow_definition            |            66 |     178 |                      0.3708 |
++-------------+--------------------------------+---------------+---------+-----------------------------+
+```
+
+Results by rows:
+```
++-------------+---------------------------------------+---------------+---------+-----------------------------+
+| schema_name | table_name                            | seconds_taken | rows    | (ss.seconds_taken / s.rows) |
++-------------+---------------------------------------+---------------+---------+-----------------------------+
+| next        | account_code_pick_list_option         |            92 | 1727494 |                      0.0001 |
+| next        | account_code_pick_list_option_parents |            50 | 1283420 |                      0.0000 |
+| next        | account_code_part_matcher             |            53 | 1022402 |                      0.0001 |
+| next        | image_loader                          |            48 |  735582 |                      0.0001 |
+| next        | approval_chain_entry                  |            47 |  699770 |                      0.0001 |
+| next        | extension_point                       |            43 |  587383 |                      0.0001 |
+| next        | extension_point_value                 |            31 |  456824 |                      0.0001 |
+| next        | operator                              |            26 |  419274 |                      0.0001 |
+| next        | approval_chain_resolver               |            29 |  294802 |                      0.0001 |
+| next        | users_aud                             |            29 |  293219 |                      0.0001 |
++-------------+---------------------------------------+---------------+---------+-----------------------------+
+```

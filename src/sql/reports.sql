@@ -42,7 +42,7 @@ FROM LOG_TABLE_CATEGORY_SUMMARY ss
   INNER JOIN MIGRATION_STATUS s
     ON s.schema_name = ss.schema_name AND s.table_name = ss.table_name
 WHERE ss.category = 'IMPORT_DATA'
-ORDER BY s.rows;
+ORDER BY ss.seconds_taken;
 
 -- Records remaining to be imported and an estimate of how long it will take
 SELECT
