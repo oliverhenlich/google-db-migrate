@@ -24,7 +24,20 @@ log "$DB" "" "DUMP" "START" "Start dumping tables from database $DB into $DATA_D
 # Only dump table that are not dumped yet or are still in the process of being dumped
 TABLES_SQL="select table_name from $MIGRATION_STATUS_TABLE where schema_name = '$DB' and DUMPING != 'Y' and DUMPED = 'N'"
 
+for TABLE in $(mysql -NBA --host=${DB_HOST} --user=${DB_USER} --password=${DB_PASS} --database=${GOOGLE_MIGRATION_DB} -e "$TABLES_SQL")
+do
+    log "$DB" "$TABLE" "DUMP_COUNT" "START" "Counting rows in $TABLE"
+
+    ROW_COUNT=$(mysql -ss --host=${DB_HOST} --user=${DB_USER} --password=${DB_PASS} --database=${DB} -e"select count(*) from $TABLE")
+    exit_on_error "Error getting rows for $TABLE", "$TABLE"
+    update_status "$DB" "$TABLE" "" "" "" "" "" "" "" "" "" "$ROW_COUNT"
+
+    log "$DB" "$TABLE" "DUMP_COUNT" "END" "Counted rows in $TABLE - $ROW_COUNT"
+done
+
 TABLE_COUNT=0
+TABLES_SQL="$TABLES_SQL order by ROWS asc"
+
 for TABLE in $(mysql -NBA --host=${DB_HOST} --user=${DB_USER} --password=${DB_PASS} --database=${GOOGLE_MIGRATION_DB} -e "$TABLES_SQL")
 do
     #TABLE_DATA=${DATA_DIR}/${TABLE}.csv
@@ -33,10 +46,6 @@ do
 
     log "$DB" "$TABLE" "DUMP_DATA" "START" "Dumping table: $TABLE data to $TABLE_DATA_GZ"
     update_status "$DB" "$TABLE" "Y" "N" "" "" "" "" "" "" "" ""
-
-    ROW_COUNT=$(mysql -ss --host=${DB_HOST} --user=${DB_USER} --password=${DB_PASS} --database=${DB} -e"select count(*) from $TABLE")
-    exit_on_error "Error getting rows for $TABLE", "$TABLE"
-    update_status "$DB" "$TABLE" "" "" "" "" "" "" "" "" "" "$ROW_COUNT"
 
     # create csv dump
     #TABLE_DATA=$(fix_path ${TABLE_DATA})

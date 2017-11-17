@@ -20,7 +20,7 @@ do
     if [ ${PROCESSING_COUNT} -eq 0 ] ;
     then
         # Query to find the next dump to upload
-        TABLE_SQL="select TABLE_NAME from $MIGRATION_STATUS_TABLE where SCHEMA_NAME='$DB' and ERROR='N' and  DUMPED='Y' and COMPRESSED='Y' and UPLOADING='N' and UPLOADED='N' limit 1"
+        TABLE_SQL="select TABLE_NAME from $MIGRATION_STATUS_TABLE where SCHEMA_NAME='$DB' and ERROR='N' and  DUMPED='Y' and COMPRESSED='Y' and UPLOADING='N' and UPLOADED='N' order by ROWS asc limit 1"
         TABLE=$(mysql -NBA --host=${DB_HOST} --user=${DB_USER} --password=${DB_PASS} --database=${GOOGLE_MIGRATION_DB} -e "${TABLE_SQL}")
         exit_on_error "Error getting next table to upload", ""
 
