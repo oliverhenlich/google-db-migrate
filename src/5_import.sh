@@ -43,6 +43,7 @@ do
             # todo eval
 
             # upload csv dump
+            # Broken, see https://stackoverflow.com/questions/41567642/insert-null-in-google-cloud-sql-using-csv-import
             #${GCLOUD} --quiet beta sql import csv ${GSQL_INSTANCE} gs://${GCS_BUCKET}/${DB}/${TABLE_DATA_GZ_BASENAME} --database="$DB" --table="$TABLE"
 
             # upload sql dump

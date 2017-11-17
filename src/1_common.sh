@@ -57,7 +57,7 @@ function init() {
     # Check that mysql will be able to write to the dir
     if [ "$machine" == "Linux" ]; then
         DIR_PERMISSIONS=$(stat -c %a "$DIR")
-        if [ ${DIR_PERMISSIONS} != 777 ]; then
+        if [[ ${DIR_PERMISSIONS} != 777 ]]; then
             echo "Insufficient permissions for $DIR. Mysql needs to be able to write to it."
             exit
         fi
